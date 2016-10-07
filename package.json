@@ -1,0 +1,19 @@
+{
+  "name": "midterm",
+  "version": "1.0.0",
+  "description": "midterm",
+  "main": "wallet.js",
+  "scripts": {
+    "test": "node wallet.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JaylanT/midterm.git"
+  },
+  "author": "Jaylan",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/JaylanT/midterm/issues"
+  },
+  "homepage": "https://github.com/JaylanT/midterm#readme"
+}
