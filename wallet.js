@@ -1,11 +1,14 @@
 #!/usr/bin/env node
 
 const request = require('request');
-const _ = require('lodash');
+const csv = require('csv');
+const fs = require('fs');
+const json2csv = require('json2csv');
 
 const URL = 'https://coinbase.com/api/v1/currencies/exchange_rates';
 const BUY = 'BUY';
 const SELL = 'SELL';
+const CSVFILE_DEFAULT = 'orders.csv';
 
 function buy(amount, currency) {
 	initiateTransaction(amount, currency, BUY);
@@ -16,7 +19,10 @@ function sell(amount, currency) {
 }
 
 function orders() {
+    const csv = json2csv({ data: ordersQueue, hasCSVColumnTitle: false });
+    fs.writeFileSync(CSVFILE_DEFAULT, csv);
 
+    csv2console(CSVFILE_DEFAULT);
 }
 
 function initiateTransaction(amount, currency, type) {
@@ -31,6 +37,7 @@ function initiateTransaction(amount, currency, type) {
 		if (transaction) {
 			ordersQueue.push(transaction);
 			printTransaction(transaction);
+            orders();
 		}
 	});
 }
@@ -39,7 +46,10 @@ function createTransaction(amount, currency, type, conversions) {
 	const transaction = {
 		amount: amount,
 		timestamp: new Date().toUTCString(),
-		type: type
+		type: type,
+        currency: null,
+        convertedValue: null,
+        BTCValue: null
 	}
 
 	if (currency) {
@@ -73,20 +83,35 @@ function getBTCConversions(callback) {
 
 function printTransaction(transaction) {
 	if (transaction.currency) {
-		console.log('Order to ' + transaction.type + ' ' + transaction.amount
-			+ ' ' + transaction.currency + ' worth of BTC queued @ '
-			+ transaction.BTCValue + ' BTC/' + transaction.currency
-			+ ' (' + transaction.convertedValue + ' BTC)');
+		console.log('Order to ' + transaction.type + ' ' + transaction.amount + ' ' + transaction.currency + ' worth of BTC queued @ ' + transaction.BTCValue + ' BTC/' + transaction.currency + ' (' + transaction.convertedValue + ' BTC)');
 	} else {
-		console.log('Order to ' + transaction.type + ' ' + transaction.amount
-			+ ' BTC queued');
+		console.log('Order to ' + transaction.type + ' ' + transaction.amount + ' BTC queued');
 	}
+}
+
+function csv2console(csvfile) {
+    const parser = csv.parse();
+    parser.on('readable', () => {
+        while (row = parser.read()) {
+            const amount = row[0];
+            const timestamp = row[1];
+            const type = row[2];
+            const currency = row[3] ? row[3] : 'BTC';
+            const convertedValue = row[4];
+            const BTCValue = row[5];
+
+            console.log(timestamp + ' : ' + type + ' ' + amount + ' ' + currency + ' : Unfilled');
+        }
+    });
+    parser.on('error', (err) => {
+        console.log(err.message);
+    });
+    fs.createReadStream(csvfile).pipe(parser);
 }
 
 const ordersQueue = [];
 
 buy(20, 'usd');
-buy(46);
-buy('asdf');
-buy(20, 'asdf');
+buy(20, 'GBP');
 buy(200, 'HKD');
+buy(10);
