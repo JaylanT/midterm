@@ -22,10 +22,10 @@ function sell(amount, currency) {
 
 function orders() {
 	const headers = Object.keys(ordersQueue[0]);
-    const csv = json2csv({ data: ordersQueue, fields: headers });
-    fs.writeFileSync(CSVFILE_DEFAULT, csv);
+	const csv = json2csv({ data: ordersQueue, fields: headers });
+	fs.writeFileSync(CSVFILE_DEFAULT, csv);
 
-    csv2console(CSVFILE_DEFAULT);
+	csv2console(CSVFILE_DEFAULT);
 }
 
 function initiateTransaction(amount, currency, action) {
@@ -49,8 +49,8 @@ function createTransaction(amount, currency, action, conversions) {
 		timestamp: new Date().toString(),
 		action: action,
 		amount: amount,
-        currency: 'BTC',
-        rate: null,
+		currency: 'BTC',
+		rate: null,
 		status: 'UNFILLED'
 	}
 
@@ -92,27 +92,27 @@ function printTransaction(transaction) {
 
 function csv2console(csvfile) {
 	console.log('=== CURRENT ORDERS ===');
-    const parser = csv.parse();
+	const parser = csv.parse();
 	var isFirstRow = true;
-    parser.on('readable', () => {
-        while (row = parser.read()) {
+	parser.on('readable', () => {
+		while (row = parser.read()) {
 			if (isFirstRow) {
 				isFirstRow = false;
 				continue;
 			}
-            const timestamp = row[0];
-            const action = row[1];
-            const amount = row[2];
-            const currency = row[3];
-            const convertedValue = row[4];
-            const rate = row[5];
+			const timestamp = row[0];
+			const action = row[1];
+			const amount = row[2];
+			const currency = row[3];
+			const convertedValue = row[4];
+			const rate = row[5];
 
-            console.log(timestamp + ' : ' + action + ' ' + amount + currency + ' : UNFILLED');
-        }
-    });
-    parser.on('error', (err) => {
-        console.log(err.message);
-    });
-    fs.createReadStream(csvfile).pipe(parser);
+			console.log(timestamp + ' : ' + action + ' ' + amount + currency + ' : UNFILLED');
+		}
+	});
+	parser.on('error', (err) => {
+		console.log(err.message);
+	});
+	fs.createReadStream(csvfile).pipe(parser);
 }
 
