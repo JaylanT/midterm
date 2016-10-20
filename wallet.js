@@ -10,6 +10,8 @@ const BUY = 'BUY';
 const SELL = 'SELL';
 const CSVFILE_DEFAULT = 'orders.csv';
 
+const ordersQueue = [];
+
 function buy(amount, currency) {
 	initiateTransaction(amount, currency, BUY);
 }
@@ -19,59 +21,56 @@ function sell(amount, currency) {
 }
 
 function orders() {
-    const csv = json2csv({ data: ordersQueue, hasCSVColumnTitle: false });
+	const headers = Object.keys(ordersQueue[0]);
+    const csv = json2csv({ data: ordersQueue, fields: headers });
     fs.writeFileSync(CSVFILE_DEFAULT, csv);
 
     csv2console(CSVFILE_DEFAULT);
 }
 
-function initiateTransaction(amount, currency, type) {
+function initiateTransaction(amount, currency, action) {
 	if (isNaN(amount) || amount <= 0) {
 		console.log('No amount specified');
 		return;
 	}
 	
-	getBTCConversions((conversions) => {
-		const transaction = createTransaction(amount, currency, type, conversions);
+	getBTCRates((conversions) => {
+		const transaction = createTransaction(amount, currency, action, conversions);
 
 		if (transaction) {
 			ordersQueue.push(transaction);
 			printTransaction(transaction);
-            orders();
 		}
 	});
 }
 
-function createTransaction(amount, currency, type, conversions) {
+function createTransaction(amount, currency, action, conversions) {
 	const transaction = {
+		timestamp: new Date().toString(),
+		action: action,
 		amount: amount,
-		timestamp: new Date().toUTCString(),
-		type: type,
-        currency: null,
-        convertedValue: null,
-        BTCValue: null
+        currency: 'BTC',
+        rate: null,
+		status: 'UNFILLED'
 	}
 
 	if (currency) {
-		const key1 = currency.toLowerCase() + '_to_btc';
-		const conversionValue = conversions[key1];
-		const key2 = 'btc_to_' + currency.toLowerCase();
-		const BTCValue = conversions[key2];
+		const key = 'btc_to_' + currency.toLowerCase();
+		const rate = conversions[key];
 
-		if (conversionValue === undefined) {
-			console.log('No known exchange rate for BTC/' + currency + '. Order failed');
+		if (rate === undefined) {
+			console.log('No known exchange rate for BTC/' + currency + '. Order failed.');
 			return;
 		}
 
 		transaction.currency = currency.toUpperCase();
-		transaction.convertedValue = conversionValue;
-		transaction.BTCValue = BTCValue;
+		transaction.rate = rate;
 	}
 
 	return transaction;
 }
 
-function getBTCConversions(callback) {
+function getBTCRates(callback) {
 	request(URL, (err, res, body) => {
 		if (!err && res.statusCode == 200) {
 			const conversions = JSON.parse(body);
@@ -82,25 +81,33 @@ function getBTCConversions(callback) {
 }
 
 function printTransaction(transaction) {
-	if (transaction.currency) {
-		console.log('Order to ' + transaction.type + ' ' + transaction.amount + ' ' + transaction.currency + ' worth of BTC queued @ ' + transaction.BTCValue + ' BTC/' + transaction.currency + ' (' + transaction.convertedValue + ' BTC)');
+	var toPrint = 'Order to ' + transaction.action + ' ' + transaction.amount;
+	if (transaction.currency != 'BTC') {
+		const convertedValue = 1 / transaction.rate;
+		console.log(toPrint + ' ' + transaction.currency + ' worth of BTC queued @ ' + transaction.rate + ' BTC/' + transaction.currency + ' (' + convertedValue + ' BTC)');
 	} else {
-		console.log('Order to ' + transaction.type + ' ' + transaction.amount + ' BTC queued');
+		console.log(toPrint + ' BTC queued');
 	}
 }
 
 function csv2console(csvfile) {
+	console.log('=== CURRENT ORDERS ===');
     const parser = csv.parse();
+	var isFirstRow = true;
     parser.on('readable', () => {
         while (row = parser.read()) {
-            const amount = row[0];
-            const timestamp = row[1];
-            const type = row[2];
-            const currency = row[3] ? row[3] : 'BTC';
+			if (isFirstRow) {
+				isFirstRow = false;
+				continue;
+			}
+            const timestamp = row[0];
+            const action = row[1];
+            const amount = row[2];
+            const currency = row[3];
             const convertedValue = row[4];
-            const BTCValue = row[5];
+            const rate = row[5];
 
-            console.log(timestamp + ' : ' + type + ' ' + amount + ' ' + currency + ' : Unfilled');
+            console.log(timestamp + ' : ' + action + ' ' + amount + currency + ' : UNFILLED');
         }
     });
     parser.on('error', (err) => {
@@ -109,9 +116,3 @@ function csv2console(csvfile) {
     fs.createReadStream(csvfile).pipe(parser);
 }
 
-const ordersQueue = [];
-
-buy(20, 'usd');
-buy(20, 'GBP');
-buy(200, 'HKD');
-buy(10);
