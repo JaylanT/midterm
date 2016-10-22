@@ -15,5 +15,14 @@
   "bugs": {
     "url": "https://github.com/JaylanT/midterm/issues"
   },
-  "homepage": "https://github.com/JaylanT/midterm#readme"
+  "homepage": "https://github.com/JaylanT/midterm#readme",
+  "dependencies": {
+    "csv": "^1.1.0",
+    "json2csv": "^3.7.0",
+    "request": "^2.75.0"
+  },
+  "devDependencies": {},
+  "keywords": [
+    "coinbase"
+  ]
 }
