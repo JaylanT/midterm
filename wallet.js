@@ -21,8 +21,8 @@ function sell(amount, currency) {
 }
 
 function orders() {
-	const headers = Object.keys(ordersQueue[0]);
-	const csv = json2csv({ data: ordersQueue, fields: headers });
+	const headers = Object.keys(ordersQueue[0]),
+		csv = json2csv({ data: ordersQueue, fields: headers });
 	fs.writeFileSync(CSVFILE_DEFAULT, csv);
 
 	csv2console(CSVFILE_DEFAULT);
@@ -49,14 +49,14 @@ function createTransaction(amount, currency, action, conversions) {
 		timestamp: new Date().toString(),
 		action: action,
 		amount: amount,
-		currency: 'BTC',
+		currency: null,
 		rate: null,
 		status: 'UNFILLED'
 	}
 
 	if (currency) {
-		const key = 'btc_to_' + currency.toLowerCase();
-		const rate = conversions[key];
+		const key = 'btc_to_' + currency.toLowerCase(),
+			rate = conversions[key];
 
 		if (rate === undefined) {
 			console.log('No known exchange rate for BTC/' + currency + '. Order failed.');
@@ -65,6 +65,8 @@ function createTransaction(amount, currency, action, conversions) {
 
 		transaction.currency = currency.toUpperCase();
 		transaction.rate = rate;
+	} else {
+		transaction.currency = 'BTC';
 	}
 
 	return transaction;
@@ -83,8 +85,11 @@ function getBTCRates(callback) {
 function printTransaction(transaction) {
 	var toPrint = 'Order to ' + transaction.action + ' ' + transaction.amount;
 	if (transaction.currency != 'BTC') {
-		const convertedValue = 1 / transaction.rate;
-		console.log(toPrint + ' ' + transaction.currency + ' worth of BTC queued @ ' + transaction.rate + ' BTC/' + transaction.currency + ' (' + convertedValue + ' BTC)');
+		const currency = transaction.currency,
+			rate = transaction.rate,
+			convertedValue = 1 / transaction.rate;
+
+		console.log(toPrint + ' ' + currency + ' worth of BTC queued @ ' + rate + ' BTC/' + currency + ' (' + convertedValue + ' BTC)');
 	} else {
 		console.log(toPrint + ' BTC queued');
 	}
@@ -96,16 +101,17 @@ function csv2console(csvfile) {
 	var isFirstRow = true;
 	parser.on('readable', () => {
 		while (row = parser.read()) {
+			// Skip header
 			if (isFirstRow) {
 				isFirstRow = false;
 				continue;
 			}
-			const timestamp = row[0];
-			const action = row[1];
-			const amount = row[2];
-			const currency = row[3];
-			const convertedValue = row[4];
-			const rate = row[5];
+			const timestamp = row[0],
+				action = row[1],
+				amount = row[2],
+				currency = row[3],
+				convertedValue = row[4],
+				rate = row[5];
 
 			console.log(timestamp + ' : ' + action + ' ' + amount + currency + ' : UNFILLED');
 		}
