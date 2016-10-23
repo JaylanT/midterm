@@ -21,6 +21,11 @@ function sell(amount, currency) {
 }
 
 function orders() {
+	if (ordersQueue.length === 0) {
+		console.log('No orders found.');
+		return;
+	}
+	
 	const headers = Object.keys(ordersQueue[0]),
 		csv = json2csv({ data: ordersQueue, fields: headers });
 	fs.writeFileSync(CSVFILE_DEFAULT, csv);
